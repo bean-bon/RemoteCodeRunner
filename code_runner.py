@@ -1,5 +1,7 @@
 import os
 import time
+from dataclasses import dataclass
+from subprocess import Popen, PIPE
 from enum import Enum
 
 from werkzeug.datastructures import FileStorage
@@ -13,25 +15,35 @@ class CommandExitCode(Enum):
     STDOUT_FILE_LIMIT = "The maximum size for the stdout file is exceeded."
 
 
+@dataclass
+class CodeRunnerResult:
+    exit_code: CommandExitCode
+    stdout: str
+    stderr: str
+
+
 CODE_OUTPUT_FILE = "run_result"
+ERROR_OUTPUT_FILE = "run_errors"
 
 
-def run_code_command(base: str, timeout: float = 2.0) -> CommandExitCode:
+def run_code_command(base: str, timeout: float = 2.0) -> CodeRunnerResult:
     try:
         start = time.time()
-        os.system(f"timeout {timeout}s {base} -k | head -c 1M > {CODE_OUTPUT_FILE}")
+        cmd = f"timeout {timeout}s {base} -k | head -c 1M >> {CODE_OUTPUT_FILE} 2>&1"
+        proc = Popen(cmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        out, errs = proc.communicate()
         elapsed = time.time() - start
         if elapsed > timeout:
-            return CommandExitCode.TIMEOUT
+            return CodeRunnerResult(CommandExitCode.TIMEOUT, out, errs)
         else:
-            return CommandExitCode.SUCCESS
+            return CodeRunnerResult(CommandExitCode.SUCCESS, out, errs)
     except BrokenPipeError:
-        return CommandExitCode.STDOUT_FILE_LIMIT
+        return CodeRunnerResult(CommandExitCode.STDOUT_FILE_LIMIT, "", "")
     except Exception:
-        return CommandExitCode.UNKNOWN_ERROR
+        return CodeRunnerResult(CommandExitCode.UNKNOWN_ERROR, "", "")
 
 
-def run_file(file: FileStorage) -> CommandExitCode:
+def run_file(file: FileStorage) -> CodeRunnerResult:
     file_name_split = file.filename.split(".")
     match match_extension_to_language(file_name_split[-1]):
         case "python": return run_code_command(f"python3 {file.filename}")
@@ -39,10 +51,13 @@ def run_file(file: FileStorage) -> CommandExitCode:
         case "java":
             base_name = file.filename.replace(f".{file_name_split[-1]}", "")
             return_code = run_code_command(f"javac {file.filename} && java {base_name}")
-            os.remove(f"{base_name}.class")
+            try:
+                os.remove(f"{base_name}.class")
+            except FileNotFoundError:
+                pass
             return return_code
         case _:
-            return CommandExitCode.UNSUPPORTED_LANGUAGE
+            return CodeRunnerResult(CommandExitCode.UNSUPPORTED_LANGUAGE, "", "")
 
 
 def match_extension_to_language(ext: str) -> str:
