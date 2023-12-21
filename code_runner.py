@@ -44,21 +44,25 @@ def run_code_command(base: str, timeout: float = 2.0) -> CodeRunnerResult:
         return CodeRunnerResult(CommandExitCode.UNKNOWN_ERROR, b"", b"")
 
 
+def compile_run_command(cmd: str, binary_file_name: str) -> CodeRunnerResult:
+    code_exc_result = run_code_command(cmd)
+    try:
+        os.remove(binary_file_name)
+    except FileNotFoundError:
+        pass
+    return code_exc_result
+
+
 def run_file(file: FileStorage) -> CodeRunnerResult:
     file_name_split = file.filename.split(".")
+    base_name = file.filename.replace(f".{file_name_split[-1]}", "")
     match match_extension_to_language(file_name_split[-1]):
         case "python": return run_code_command(f"python3 {file.filename}")
         case "scala": return run_code_command(f"scala {file.filename}")
-        case "java":
-            base_name = file.filename.replace(f".{file_name_split[-1]}", "")
-            return_code = run_code_command(f"javac {file.filename} && java {base_name}")
-            try:
-                os.remove(f"{base_name}.class")
-            except FileNotFoundError:
-                pass
-            return return_code
-        case _:
-            return CodeRunnerResult(CommandExitCode.UNSUPPORTED_LANGUAGE, "", "")
+        case "java": return compile_run_command(f"javac {file.filename} && java {base_name}", f"{base_name}.class")
+        case "c++": return compile_run_command(f"g++ {file.filename} && ./a.out", f"a.out")
+        case "c": return compile_run_command(f"gcc {file.filename} -o executable && ./executable", "executable")
+        case _: return CodeRunnerResult(CommandExitCode.UNSUPPORTED_LANGUAGE, b"", b"")
 
 
 def match_extension_to_language(ext: str) -> str:
@@ -66,4 +70,6 @@ def match_extension_to_language(ext: str) -> str:
         case "py": return "python"
         case "java": return "java"
         case "sc": return "scala"
+        case "cpp": return "c++"
+        case "c": return "c"
         case _: return ""
