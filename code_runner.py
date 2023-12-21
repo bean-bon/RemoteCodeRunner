@@ -1,4 +1,5 @@
 import os
+import subprocess
 import time
 from dataclasses import dataclass
 from subprocess import Popen, PIPE
@@ -8,18 +9,18 @@ from werkzeug.datastructures import FileStorage
 
 
 class CommandExitCode(Enum):
-    SUCCESS = "Code run successfully."
-    UNKNOWN_ERROR = "An unknown error occurred."
-    UNSUPPORTED_LANGUAGE = "The input file format does not have a supported language runner."
-    TIMEOUT = "The runtime has exceeded the allowed maximum."
-    STDOUT_FILE_LIMIT = "The maximum size for the stdout file is exceeded."
+    SUCCESS = "Code run successfully"
+    UNKNOWN_ERROR = "An unknown error occurred"
+    UNSUPPORTED_LANGUAGE = "The input file format does not have a supported language runner"
+    TIMEOUT = "The runtime has exceeded the allowed maximum"
+    STDOUT_FILE_LIMIT = "The maximum size for the stdout file is exceeded"
 
 
 @dataclass
 class CodeRunnerResult:
     exit_code: CommandExitCode
-    stdout: str
-    stderr: str
+    output: bytes
+    errors: bytes
 
 
 CODE_OUTPUT_FILE = "run_result"
@@ -29,8 +30,8 @@ ERROR_OUTPUT_FILE = "run_errors"
 def run_code_command(base: str, timeout: float = 2.0) -> CodeRunnerResult:
     try:
         start = time.time()
-        cmd = f"timeout {timeout}s {base} -k | head -c 1M >> {CODE_OUTPUT_FILE} 2>&1"
-        proc = Popen(cmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        cmd = f"timeout {timeout}s {base} -k"
+        proc = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
         out, errs = proc.communicate()
         elapsed = time.time() - start
         if elapsed > timeout:
@@ -38,9 +39,9 @@ def run_code_command(base: str, timeout: float = 2.0) -> CodeRunnerResult:
         else:
             return CodeRunnerResult(CommandExitCode.SUCCESS, out, errs)
     except BrokenPipeError:
-        return CodeRunnerResult(CommandExitCode.STDOUT_FILE_LIMIT, "", "")
+        return CodeRunnerResult(CommandExitCode.STDOUT_FILE_LIMIT, b"", b"")
     except Exception:
-        return CodeRunnerResult(CommandExitCode.UNKNOWN_ERROR, "", "")
+        return CodeRunnerResult(CommandExitCode.UNKNOWN_ERROR, b"", b"")
 
 
 def run_file(file: FileStorage) -> CodeRunnerResult:
