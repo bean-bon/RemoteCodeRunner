@@ -1,7 +1,9 @@
+from typing import Any
+
 from flask import Flask, request
 from flask_restful import Resource, Api
 
-from code_runner import run_file, CommandExitCode
+from code_runner import CommandExitCode, run_code
 
 app = Flask(__name__)
 api = Api(app)
@@ -13,10 +15,11 @@ class CodeRunner(Resource):
         return "Send a POST request with the code file to run", 400
 
     def post(self):
-        if len(request.files) != 1:
-            return "Invalid file count", 400
-        code_file = request.files[list(request.files.keys())[0]]
-        runner_result = run_file(code_file)
+        code = request.form['code']
+        lang = request.form['lang']
+        if code is None or lang is None:
+            return "Missing form fields 'code' or 'lang'.", 400
+        runner_result = run_code(code, lang)
         errors = None
         if runner_result.errors is not None:
             errors = runner_result.errors.decode()

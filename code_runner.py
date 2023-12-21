@@ -1,11 +1,9 @@
 import os
-import subprocess
 import time
 from dataclasses import dataclass
 from subprocess import Popen, PIPE
 from enum import Enum
-
-from werkzeug.datastructures import FileStorage
+from typing import Optional
 
 
 class CommandExitCode(Enum):
@@ -21,6 +19,12 @@ class CodeRunnerResult:
     exit_code: CommandExitCode
     output: bytes
     errors: bytes
+
+
+@dataclass
+class GeneratedFile:
+    filename: str
+    extension: str
 
 
 CODE_OUTPUT_FILE = "run_result"
@@ -53,23 +57,37 @@ def compile_run_command(cmd: str, binary_file_name: str) -> CodeRunnerResult:
     return code_exc_result
 
 
-def run_file(file: FileStorage) -> CodeRunnerResult:
-    file_name_split = file.filename.split(".")
-    base_name = file.filename.replace(f".{file_name_split[-1]}", "")
-    match match_extension_to_language(file_name_split[-1]):
-        case "python": return run_code_command(f"python3 {file.filename}")
-        case "scala": return run_code_command(f"scala {file.filename}")
-        case "java": return compile_run_command(f"javac {file.filename} && java {base_name}", f"{base_name}.class")
-        case "c++": return compile_run_command(f"g++ {file.filename} && ./a.out", f"a.out")
-        case "c": return compile_run_command(f"gcc {file.filename} -o executable && ./executable", "executable")
-        case _: return CodeRunnerResult(CommandExitCode.UNSUPPORTED_LANGUAGE, b"", b"")
+def run_code(code: str, lang: str) -> CodeRunnerResult:
+    cf = make_temp_code_file(code, lang)
+    if cf is None:
+        return CodeRunnerResult(CommandExitCode.UNSUPPORTED_LANGUAGE, b"", b"")
+    full_name = f"{cf.filename}.{cf.extension}"
+    match cf.extension:
+        case "py": result = run_code_command(f"python3 {full_name}")
+        case "sc": result = run_code_command(f"scala {full_name}")
+        case "java": result = compile_run_command(f"javac {full_name} && java {cf.filename}", f"{cf.filename}.class")
+        case "cpp": result = compile_run_command(f"g++ {full_name} && ./a.out", f"a.out")
+        case "c": result = compile_run_command(f"gcc {full_name} -o executable && ./executable", "executable")
+        case _: result = CodeRunnerResult(CommandExitCode.UNSUPPORTED_LANGUAGE, b"", b"")
+    os.remove(full_name)
+    return result
 
 
-def match_extension_to_language(ext: str) -> str:
-    match ext:
-        case "py": return "python"
+def make_temp_code_file(code: str, lang: str) -> Optional[GeneratedFile]:
+    extension = match_language_to_extension(lang)
+    if extension is None:
+        return None
+    file_name = f"Solution.{extension}"
+    with open(file_name, "w") as f:
+        f.write(code)
+    return GeneratedFile("Solution", extension)
+
+
+def match_language_to_extension(lang: str) -> str | None:
+    match lang:
+        case "python": return "py"
+        case "scala": return "sc"
         case "java": return "java"
-        case "sc": return "scala"
-        case "cpp": return "c++"
+        case "c++": return "cpp"
         case "c": return "c"
-        case _: return ""
+        case _: return None
