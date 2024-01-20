@@ -1,0 +1,34 @@
+services:
+  flask:
+    build:
+      context: ./
+      dockerfile: web/Dockerfile
+    ports:
+      - 8080:8080
+    networks:
+      - adhoc
+      - internet
+    volumes:
+      - exec:/flask/code_data
+  runner:
+    build:
+     context: ./
+     dockerfile: runner/Dockerfile
+    read_only: true
+    expose:
+      - 8081:8081
+    networks:
+      - adhoc
+    volumes:
+      - exec:/coderunner/code_data
+      - /tmp
+
+volumes:
+  exec:
+
+networks:
+  adhoc:
+    driver: bridge
+    internal: true
+  internet:
+    driver: bridge

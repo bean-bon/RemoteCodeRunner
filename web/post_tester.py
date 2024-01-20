@@ -1,7 +1,7 @@
 from requests import post
 from sys import argv
 
-flask_url = "http://127.0.0.1:5000"
+flask_url = "http://0.0.0.0:8080"
 
 if __name__ == "__main__":
     lang = argv[1]
