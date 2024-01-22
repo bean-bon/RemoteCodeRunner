@@ -15,9 +15,10 @@ class CodeRunner(Resource):
     def post(self):
         code = request.form['code']
         lang = request.form['lang']
+        name = "Solution" if 'name' not in request.form.keys() else request.form['name']
         if code is None or lang is None:
             return "Missing required form fields.", 400
-        return run_code(code, lang)
+        return run_code(code, lang, name)
 
 
 api.add_resource(CodeRunner, "/")
