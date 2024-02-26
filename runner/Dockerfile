@@ -32,5 +32,4 @@ ADD requirements.txt .
 RUN pip install -r requirements.txt
 
 # Run Gunicorn server to recieve requests for running code.
-CMD ["python", "flask_app.py"]
-#CMD ["gunicorn", "--bind", "0.0.0.0:8081", "flask_app:app", "-w", "4"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8081", "flask_app:app", "-w", "4"]
