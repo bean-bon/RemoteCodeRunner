@@ -15,4 +15,5 @@ RUN pip install -r requirements.txt
 ENV FLASK_APP=flask_app.py
 ENV VOLUME_FILE_PATH=/flask/code_data
 ENV PYTHONPYCACHEPREFIX=/flask/code_data
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "flask_app:app", "-w", "4"]
+CMD ["python", "flask_app.py"]
+# CMD ["gunicorn", "--bind", "0.0.0.0:8080", "flask_app:app", "-w", "4"]

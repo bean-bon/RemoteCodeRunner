@@ -13,9 +13,10 @@ class CodeRunner(Resource):
         return "Send a POST request with the code file to run", 400
 
     def post(self):
-        code = request.form['code']
-        lang = request.form['lang']
-        name = "Solution" if 'name' not in request.form.keys() else request.form['name']
+        form_dict = request.form.to_dict()
+        code = form_dict['code']
+        lang = form_dict['lang']
+        name = "Solution" if 'name' not in form_dict.keys() else form_dict['name']
         if code is None or lang is None:
             return "Missing required form fields.", 400
         return run_code(code, lang, name)

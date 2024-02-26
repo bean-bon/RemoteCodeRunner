@@ -11,7 +11,6 @@ ENV PYTHONPYCACHEPREFIX=/coderunner/code_data
 
 # Install curl for use in the Scala installation later.
 RUN apt update
-#RUN apt install net-tools
 RUN apt install -y curl
 
 # Download code running packages.
@@ -33,4 +32,5 @@ ADD requirements.txt .
 RUN pip install -r requirements.txt
 
 # Run Gunicorn server to recieve requests for running code.
-CMD ["gunicorn", "--bind", "0.0.0.0:8081", "flask_app:app", "-w", "4"]
+CMD ["python", "flask_app.py"]
+#CMD ["gunicorn", "--bind", "0.0.0.0:8081", "flask_app:app", "-w", "4"]

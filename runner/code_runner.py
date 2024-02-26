@@ -16,7 +16,7 @@ def run_code_command(cwd: str, cmd: str, timeout: float = 10) -> CodeRunnerResul
         return CodeRunnerResult(CommandExitCode.STDOUT_FILE_LIMIT, "", "")
     except TimeoutExpired:
         return CodeRunnerResult(CommandExitCode.TIMEOUT, "", "")
-    except Exception as e:
+    except Exception:
         return CodeRunnerResult(CommandExitCode.UNKNOWN_ERROR, f"CWD: {cwd}\nCMD: {cmd}", "")
 
 
