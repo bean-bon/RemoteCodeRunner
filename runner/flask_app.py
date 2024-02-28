@@ -19,8 +19,11 @@ class Runner(Resource):
         if runner_result.errors is not None:
             errors = runner_result.errors
         exit_code = runner_result.exit_code.value + (" (with errors)" if errors != "" else "")
-        return {"output": runner_result.output + (f"\nStacktrace:{errors}" if errors != "" else ""),
-                "exit_code": exit_code}, 400 if exit_code != CommandExitCode.SUCCESS else 200
+        additional_context = ""
+        if len(runner_result.output) > 1_000_000:
+            additional_context = " (limited to 1 million characters)"
+        return {"output": runner_result.output[:1_000_000] + (f"\nStacktrace:{errors}" if errors != "" else ""),
+                "exit_code": exit_code + additional_context}, 400 if exit_code != CommandExitCode.SUCCESS else 200
 
 
 api.add_resource(Runner, "/")
