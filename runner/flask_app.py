@@ -21,8 +21,8 @@ class Runner(Resource):
         exit_code = runner_result.exit_code.value + (" (with errors)" if errors != "" else "")
         additional_context = ""
         if len(runner_result.output) > 1_000_000:
-            additional_context = " (limited to 1 million characters)"
-        return {"output": runner_result.output[:1_000_000] + (f"\nStacktrace:{errors}" if errors != "" else ""),
+            additional_context = " (limited to 10,000 characters)"
+        return {"output": runner_result.output[:10_000] + (f"\nStacktrace:{errors}" if errors != "" else ""),
                 "exit_code": exit_code + additional_context}, 400 if exit_code != CommandExitCode.SUCCESS else 200
 
 
