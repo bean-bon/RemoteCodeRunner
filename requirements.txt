@@ -14,5 +14,5 @@ packaging==24.0
 pytz==2024.1
 requests==2.31.0
 six==1.16.0
-urllib3==2.6.0
+urllib3==2.7.0
 Werkzeug==3.0.3
